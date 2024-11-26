@@ -1,6 +1,6 @@
 from exercises import (
    first_then_lower_case,
-   say,
+    say,
     powers_generator,
     meaningful_line_count,
     Quaternion,
@@ -10,7 +10,9 @@ from exercises import (
 counts = {True: 0, False: 0}
 def suite(name):
     print(f"\nTesting {name}", end="")
-def expect(condition):
+def expect(condition, message=""):
+    if not condition:
+        print(f"\nTest Failed: {message}")
     counts[condition] += 1
     print(" ." if condition else " F", end="")
 def expect_error(error_type, text, fun, *args):
