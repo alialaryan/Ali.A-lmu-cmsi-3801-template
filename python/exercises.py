@@ -1,116 +1,101 @@
+import functools
 from dataclasses import dataclass
-from collections.abc import Callable
-
 
 def change(amount: int) -> dict[int, int]:
     if not isinstance(amount, int):
-        raise TypeError('Amount must be an integer')
+        raise TypeError("Amount must be an integer")
     if amount < 0:
-        raise ValueError('Amount cannot be negative')
+        raise ValueError("Amount cannot be negative")
     counts, remaining = {}, amount
     for denomination in (25, 10, 5, 1):
         counts[denomination], remaining = divmod(remaining, denomination)
     return counts
 
 
-# Write your first then lower case function here
-def first_then_lower_case(l,callback):
-    for each in l:
-        if callback(each):
-            return each.lower()
-
-# Write your powers generator here
-def powers_generator(base=None, limit=None):
-    power=0 
-    while base**power <=limit:
-        yield base**power
-        power+=1
+def first_then_lower_case(list=[], callback=lambda x: False):
+    for string in list:
+        if callback(string):
+            return string.lower()
 
 
-# Write your say function here
-def say (word= None):
+@functools.lru_cache(maxsize=None)
+def powers_generator(*, base, limit):
+    power = 0
+    while base ** power <= limit:
+        yield base ** power
+        power += 1
+
+
+def say(word=None):
     if word is None:
         return ""
+
     def inner(value=None):
         if value is not None:
-            return say(word+ " "+ value+"")
+            return say(word + " " + value + "")
         else:
             return word
+
     return inner
 
 
-# Write your line count function here
 def meaningful_line_count(filename):
-    with open(filename, 'r') as f:
-        count=0
+    with open(filename, "r") as f:
+        count = 0
         for line in f.readlines():
             line = line.strip()
-            if len(line)>0 and line[0]!='#':
-                count +=1
+            if len(line) > 0 and line[0] != "#":
+                count += 1
     return count
-    
 
 
-# Write your Quaternion class here
+@dataclass(frozen=True)
 class Quaternion:
-    def __init__(self,a,b,c,d,create=True):
-        def __coefficients(s):
-            return (s.a, s.b, s.c, s.d)
-        def __conjugate(s):
-            cp = Quaternion(0,0,0,0, create=False)
-            cp.a=s.a
-            cp.b=-s.b
-            cp.c=-s.c
-            cp.d=-s.d
-            return cp
-        self.a=a
-        self.b=b
-        self.c=c
-        self.d=d
-        if create:
-            self.conjugate=__conjugate(self)
-        self.coefficients=__coefficients(self)
-    def __add__(self,other):
-        res=Quaternion(0,0,0,0)
-        res.a = self.a+other.a
-        res.b = self.b+other.b
-        res.c = self.c+other.c
-        res.d = self.d+other.d
-        return res
-    def __mul__(self,other):
-        res=Quaternion(0,0,0,0)
-        w1, x1, y1, z1 = self.coefficients
-        w2, x2, y2, z2 = other.coefficients
-        w=w1*w2-x1*x2-y1*y2-z1*z2
-        x=w1*x2-x1*w2-y1*z2-z1*y2
-        y=w1*y2-x1*z2-y1*w2-z1*x2
-        z=w1*z2-x1*y2-y1*x2-z1*w2
-        return Quaternion(w,x,y,z)
+    a: float
+    b: float
+    c: float
+    d: float
+
+    def __add__(self, q: "Quaternion") -> "Quaternion":
+        return Quaternion(
+            round(self.a + q.a, 10),
+            round(self.b + q.b, 10),
+            round(self.c + q.c, 10),
+            round(self.d + q.d, 10),
+        )
+
+    def __mul__(self, q: "Quaternion") -> "Quaternion":
+        return Quaternion(
+            round(self.a * q.a - self.b * q.b - self.c * q.c - self.d * q.d, 10),
+            round(self.a * q.b + self.b * q.a + self.c * q.d - self.d * q.c, 10),
+            round(self.a * q.c - self.b * q.d + self.c * q.a + self.d * q.b, 10),
+            round(self.a * q.d + self.b * q.c - self.c * q.b + self.d * q.a, 10),
+        )
+
     def __str__(self):
-        i,j,k = "","",""
-        def format(num):
-            if round(num % 1, 2) == 0:
-                return f'{num:+.1f}'
+        string = ""
+        coefficents_and_letters = zip(
+            (self.a, self.b, self.c, self.d), ["", "i", "j", "k"]
+        )
+
+        for coefficient, letter in coefficents_and_letters:
+            if coefficient == 0:
+                continue
+            if string and coefficient > 0:
+                string += "+"
+            if coefficient == -1 and letter:
+                string += "-"
+            elif coefficient == 1 and letter:
+                string += ""
             else:
-                return f'{num:+.2f}'
-        if self.b < -1 or self.b > 1:
-            i = format(self.b) + 'i'
-        if self.c < -1 or self.c > 1:
-            j = format(self.c) + 'j'
-        if self.d < -1 or self.d > 1:
-            k = format(self.d) + 'k'
-        if self.b == 1:
-            i = '+i'
-        if self.c == 1:
-            j = '+j'
-        if self.d == 1:
-            k = '+k'
-        if self.b == -1:
-            i = '-i'
-        if self.c == -1:
-            j = '-j'
-        if self.d == -1:
-            k = '-k'
-        return f'{self.a:.1f}{i}{j}{k}'
-    def __eq__(self, other):
-        return self.a==other.a and self.b==other.b and self.c==other.c and self.d==other.d
+                string += str(coefficient)
+            string += letter
+        return string or "0"
+
+    @property
+    def conjugate(self):
+        return Quaternion(self.a, -self.b, -self.c, -self.d)
+
+    @property
+    def coefficients(self):
+        return (self.a, self.b, self.c, self.d)
